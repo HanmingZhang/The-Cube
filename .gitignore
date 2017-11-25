@@ -8,5 +8,6 @@
 */Saved
 */Content/StarterContent/
 */.vs
-
+*.sln
 *.VC.db
+*.VC.VC.opendb
