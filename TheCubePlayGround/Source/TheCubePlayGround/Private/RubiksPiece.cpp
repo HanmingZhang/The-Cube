@@ -4,7 +4,6 @@
 #include "TheCubePlayGround.h"
 
 
-
 // Sets default values
 ARubiksPiece::ARubiksPiece()
 {

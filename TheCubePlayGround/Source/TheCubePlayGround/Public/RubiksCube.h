@@ -3,8 +3,6 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "iTween/iTween.h"
-#include "iTween/iTInterface.h"
 #include "RubiksCube.generated.h"
 
 UENUM(BlueprintType)
@@ -23,93 +21,82 @@ namespace ERotationGroup
 #define CUBE_PIECE_TAG "CubePiece"
 
 UCLASS(Blueprintable)
-class THECUBEPLAYGROUND_API ARubiksCube : public AActor, public IiTInterface
+class THECUBEPLAYGROUND_API ARubiksCube : public AActor
 {
 	GENERATED_BODY()
 
 private:
 	UPROPERTY()
-	TArray <class ARubiksPiece*> Pieces;
+		TArray <class ARubiksPiece*> Pieces;
 
 	UPROPERTY()
-	TArray <class ARubiksPiece*> PiecesToRotate;
+		TArray <class ARubiksPiece*> PiecesToRotate;
 
 	UPROPERTY()
-	FVector HitStartPosition;
+		FVector HitStartPosition;
 
 	UPROPERTY()
-	FVector HitStartNormal;
+		FVector HitStartNormal;
 
 	UPROPERTY()
-	class ARubiksPiece * HitStartPiece;
-    
-    UPROPERTY()
-    bool bIsCubeAnimating;
+		class ARubiksPiece * HitStartPiece;
 
-	int32 ScrambleCounter;
 
-	int32 StepsCounter;
+	float passRotationTime;
 
-	bool bIsScrambling;
+	bool isRotating;
 
-	void Scramble();
+	FRotator destRotation;
 
-public:	
+	void RotateGroup(FName name, class ARubiksPiece * piece, ERotationGroup::RotationGroup groupAxis, FRotator rotation);
+
+
+public:
 	UPROPERTY(Category = Rubiks, EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<ARubiksPiece> PieceClass;
-
-	UPROPERTY(Category = Rubiks, EditAnywhere, BlueprintReadWrite)
-	int32 CubeSize;
+		TSubclassOf<ARubiksPiece> PieceClass;
 
 	UPROPERTY(Category = Rubiks, EditAnywhere, BlueprintReadWrite)
-	float CubeExtentScale;
+		int32 CubeSize;
 
 	UPROPERTY(Category = Rubiks, EditAnywhere, BlueprintReadWrite)
-	float CubeRotationSpeed;
+		float CubeExtentScale;
+
+	UPROPERTY(Category = Rubiks, EditAnywhere, BlueprintReadWrite)
+		float totalRotationTime;
 
 	UPROPERTY(Category = Rubiks, VisibleAnywhere, BlueprintReadOnly)
-	class USceneComponent * DummyRoot;
+		class USceneComponent * DummyRoot;
 
 	UPROPERTY(Category = Rubiks, VisibleAnywhere, BlueprintReadOnly)
-	class USceneComponent * PieceRotator;
+		class USceneComponent * PieceRotator;
 
 	// Sets default values for this actor's properties
 	ARubiksCube();
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
 	// Called every frame
-	virtual void Tick( float DeltaSeconds ) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	void DestroyCube();
+		void DestroyCube();
 
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	void BuildCube(int32 size);
+		void BuildCube(int32 size);
 
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	void Scramble(int32 steps);
+		void Scramble();
 
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	int32 GetSteps();
-
-	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	bool IsCubeSolved();
+		bool IsCubeSolved();
 
 	//Rotate Cube
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	int32 RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece);
+		void RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece);
 
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-	int32 RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece);
+		void RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece);
 
 
-	//void RotateFromPiece(FVector normal, FVector direction, class ARubiksPiece * piece);
-
-	void RotateGroup(FName name, class ARubiksPiece * piece, ERotationGroup::RotationGroup groupAxis, FRotator rotation, float speed = 0.3f);
-
-    virtual void OnTweenComplete_Implementation(AiTweenEvent* eventOperator, AActor* actorTweening, USceneComponent* componentTweening, UWidget* widgetTweening, FName tweenName, FHitResult sweepHitResultForMoveEvents, bool successfulTransform) override;
-
-    virtual void OnTweenStart_Implementation(AiTweenEvent* eventOperator, AActor* actorTweening = nullptr, USceneComponent* componentTweening = nullptr, UWidget* widgetTweening = nullptr, FName tweenName = "") override;
 };
