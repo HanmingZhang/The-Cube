@@ -29,4 +29,6 @@ public:
 	//Check if ht piece is at its start position
 	bool IsAtStartPosition();
 	
+	int32 cubePieceID;
+
 };
