@@ -168,9 +168,9 @@ bool ARubiksCube::IsCubeSolved()
 }
 
 
-void ARubiksCube::RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece) {
+int32 ARubiksCube::RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece) {
 	if (this->isRotating) {
-		return;
+		return -1;
 	}
 
 	UE_LOG(LogActor, Warning, TEXT("Rotate From Piece Clockwise!"));
@@ -178,38 +178,52 @@ void ARubiksCube::RotateFromPieceClockwise(FVector normal, class ARubiksPiece * 
 		UE_LOG(LogActor, Warning, TEXT("Top face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Z, FRotator(0, 90, 0));
+
+		return 1;
 	}
 	else if (normal.Equals(FVector(0, 0, -1))) { //Bottom Face
 		UE_LOG(LogActor, Warning, TEXT("Bottom face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Z, FRotator(0, -90, 0));
+
+		return 2;
 	}
 	else if (normal.Equals(FVector(1, 0, 0))) { //Back face
 		UE_LOG(LogActor, Warning, TEXT("Back face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::X, FRotator(0, 0, -90));
+
+		return 3;
 	}
 	else if (normal.Equals(FVector(-1, 0, 0))) { //Front Face
 		UE_LOG(LogActor, Warning, TEXT("Front face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::X, FRotator(0, 0, 90));
+
+		return 4;
 	}
 	else if (normal.Equals(FVector(0, -1, 0))) { //Right Face
 		UE_LOG(LogActor, Warning, TEXT("Right face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Y, FRotator(90, 0, 0));
+
+		return 5;
 	}
 	else if (normal.Equals(FVector(0, 1, 0))) { //Left Face
 		UE_LOG(LogActor, Warning, TEXT("Left face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Y, FRotator(-90, 0, 0));
+
+		return 6;
 	}
+
+	return -1;
 }
 
 
-void ARubiksCube::RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece) {
+int32 ARubiksCube::RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece) {
 	if (this->isRotating) {
-		return;
+		return -1;
 	}
 
 	UE_LOG(LogActor, Warning, TEXT("Rotate From Piece Clockwise!"));
@@ -217,32 +231,46 @@ void ARubiksCube::RotateFromPieceCounterClockwise(FVector normal, class ARubiksP
 		UE_LOG(LogActor, Warning, TEXT("Top face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Z, FRotator(0, -90, 0));
+
+		return 1;
 	}
 	else if (normal.Equals(FVector(0, 0, -1))) { //Bottom Face
 		UE_LOG(LogActor, Warning, TEXT("Bottom face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Z, FRotator(0, 90, 0));
+
+		return 2;
 	}
 	else if (normal.Equals(FVector(1, 0, 0))) { //Back face
 		UE_LOG(LogActor, Warning, TEXT("Back face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::X, FRotator(0, 0, 90));
+
+		return 3;
 	}
 	else if (normal.Equals(FVector(-1, 0, 0))) { //Front Face
 		UE_LOG(LogActor, Warning, TEXT("Front face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::X, FRotator(0, 0, -90));
+
+		return 4;
 	}
 	else if (normal.Equals(FVector(0, -1, 0))) { //Right Face
 		UE_LOG(LogActor, Warning, TEXT("Right face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Y, FRotator(-90, 0, 0));
+
+		return 5;
 	}
 	else if (normal.Equals(FVector(0, 1, 0))) { //Left Face
 		UE_LOG(LogActor, Warning, TEXT("Left face!"));
 
 		RotateGroup(FName("Group Rotation"), piece, ERotationGroup::RotationGroup::Y, FRotator(90, 0, 0));
+
+		return 6;
 	}
+
+	return -1;
 }
 
 
