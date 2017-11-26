@@ -44,8 +44,8 @@ void ARubiksCube::BeginPlay()
 	//Build Cube Pieces
 	this->BuildCube(this->CubeSize);
 
-	this->SetActorRotation(FRotator(30, 30, 30));
-	this->SetActorLocation(FVector(50, 0, 0));
+	//this->SetActorRotation(FRotator(30, 30, 30));
+	//this->SetActorLocation(FVector(50, 0, 0));
 }
 
 // Called every frame
@@ -324,6 +324,8 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	for (int32 x = 0; x < PiecesToRotate.Num(); x++) {
 		PiecesToRotate[x]->AttachToComponent(PieceRotator, FAttachmentTransformRules::KeepWorldTransform);
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("%f faces to rotate"), PiecesToRotate.Num());
 
 	// start Rotation
 	destRotation = rotation;
