@@ -389,6 +389,9 @@ int32 ARubiksCube::RotateFromPieceCounterClockwise(FVector normal, class ARubiks
 
 void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotationGroup::RotationGroup groupAxis, FRotator rotation, float speed)
 {	
+
+	//return;
+
 	//Clean array of the pieces that will rotate
 	PiecesToRotate.Empty();
 
@@ -436,6 +439,8 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 		PiecesToRotate[x]->AttachRootComponentTo(PieceRotator, NAME_None, EAttachLocation::KeepWorldPosition);
 	}
 
+
+	return;
 
 	//Rotate PieceRotator
 	UiTween::ComponentRotateFromToSimple(tweenName, PieceRotator, this->GetActorRotation(), rotation, ECoordinateSpace::self, true, speed, EEaseType::linear, "", this, nullptr, this);
