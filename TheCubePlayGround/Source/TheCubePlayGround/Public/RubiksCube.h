@@ -93,10 +93,10 @@ public:
 
 	//Rotate Cube
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-		void RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece);
+		int32 RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece);
 
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
-		void RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece);
+		int32 RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece);
 
 
 };
