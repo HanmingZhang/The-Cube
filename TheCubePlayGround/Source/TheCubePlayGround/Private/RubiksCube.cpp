@@ -46,7 +46,7 @@ void ARubiksCube::BeginPlay()
 	this->BuildCube(this->CubeSize);
 	
 	//this->SetActorRotation(FRotator(30, 30, 30));
-	this->SetActorLocation(FVector(-320, 400, 400));
+	//this->SetActorLocation(FVector(-320, 400, 400));
 }
 
 // Called every frame
@@ -101,7 +101,7 @@ void ARubiksCube::BuildCube(int32 size)
 					FActorSpawnParameters params;
 					params.Owner = this;
 					ARubiksPiece * piece = gWorld->SpawnActor<ARubiksPiece>(PieceClass, FVector(CUBE_EXTENT * this->CubeExtentScale * j, CUBE_EXTENT * this->CubeExtentScale * i, CUBE_EXTENT * this->CubeExtentScale * k), FRotator(0.0f, 0.0f, 0.0f), params);
-					piece->AttachRootComponentToActor(this, NAME_None, EAttachLocation::KeepWorldPosition, false);
+					piece->AttachRootComponentToActor(this, NAME_None, EAttachLocation::KeepRelativeOffset, false);
 					piece->Tags.Add(CUBE_PIECE_TAG);
 					Pieces.Add(piece);
 				}
@@ -183,7 +183,7 @@ bool ARubiksCube::IsCubeSolved()
 
 int32 ARubiksCube::RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece) {
 	if (this->bIsCubeAnimating) {
-		return;
+		return -1;
 	}
 	UE_LOG(LogActor, Warning, TEXT("Rotate From Piece Clockwise!"));
 	if (normal.Equals(FVector(0, 0, 1))) { //Top Face
@@ -228,12 +228,14 @@ int32 ARubiksCube::RotateFromPieceClockwise(FVector normal, class ARubiksPiece *
 		
 		return 6;
 	}
+
+	return -1;
 }
 
 
 int32 ARubiksCube::RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece) {
 	if (this->bIsCubeAnimating) {
-		return;
+		return -1;
 	}
 	UE_LOG(LogActor, Warning, TEXT("Rotate From Piece Clockwise!"));
 	if (normal.Equals(FVector(0, 0, 1))) { //Top Face
@@ -278,6 +280,8 @@ int32 ARubiksCube::RotateFromPieceCounterClockwise(FVector normal, class ARubiks
 	
 		return 6;
 	}
+
+	return -1;
 }
 
 
