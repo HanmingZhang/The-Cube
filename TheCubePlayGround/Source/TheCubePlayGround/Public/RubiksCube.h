@@ -91,6 +91,10 @@ public:
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
 		bool IsCubeSolved();
 
+	UFUNCTION(Category = Rubiks, BlueprintCallable)
+		ARubiksPiece* getCubePieceByID(int32 inputID);
+
+
 	//Rotate Cube
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
 		int32 RotateFromPieceClockwise(FVector normal, class ARubiksPiece * piece);
