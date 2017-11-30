@@ -17,9 +17,9 @@ ARubiksCube::ARubiksCube()
 	//Set default cube size
 	this->CubeSize = 3;
 
-	this->HitStartPiece = nullptr;
-	this->HitStartPosition = FVector::ZeroVector;
-	this->HitStartNormal = FVector::ZeroVector;
+	//this->HitStartPiece = nullptr;
+	//this->HitStartPosition = FVector::ZeroVector;
+	//this->HitStartNormal = FVector::ZeroVector;
 
 	//Creates the piece rotator
 	DummyRoot = CreateDefaultSubobject<USceneComponent>(FName("Dummy Root"));
@@ -28,6 +28,12 @@ ARubiksCube::ARubiksCube()
 	PieceRotator = CreateDefaultSubobject<USceneComponent>(FName("Piece Rotator"));
 
 	PieceRotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
+
+	SelfRotator = CreateDefaultSubobject<USceneComponent>(FName("Self Rotator"));
+
+	SelfRotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
 
 	this->CubeExtentScale = 1.0;
 	this->totalRotationTime = 1.0;
@@ -44,8 +50,6 @@ void ARubiksCube::BeginPlay()
 	//Build Cube Pieces
 	this->BuildCube(this->CubeSize);
 
-	//this->SetActorRotation(FRotator(30, 30, 30));
-	//this->SetActorLocation(FVector(50, 0, 0));
 }
 
 // Called every frame
@@ -76,6 +80,7 @@ void ARubiksCube::DestroyCube()
 
 	Pieces.Empty();
 	PieceRotator->SetRelativeRotation(FRotator(0, 0, 0));
+	SelfRotator->SetRelativeRotation(FRotator(0, 0, 0));
 }
 
 void ARubiksCube::BuildCube(int32 size)
@@ -87,7 +92,9 @@ void ARubiksCube::BuildCube(int32 size)
 
 	//Set PieceRotator to the center of the new cube
 	float centerOffset = (CUBE_EXTENT * this->CubeExtentScale * (this->CubeSize - 1)) / 2;
+
 	PieceRotator->SetRelativeLocation(FVector(centerOffset, centerOffset, centerOffset));
+	SelfRotator->SetRelativeLocation(FVector(centerOffset, centerOffset, centerOffset));
 
 
 	int32 cubePieceID = 1;
@@ -296,7 +303,7 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	if (groupAxis == ERotationGroup::RotationGroup::X) {
 		for (int32 x = 0; x < Pieces.Num(); x++) {
 			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).X -
-				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).X) < 10) {
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).X) < CUBE_ROTATE_THRESHOLD) {
 				PiecesToRotate.Add(Pieces[x]);
 			}
 		}
@@ -304,7 +311,7 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	else if (groupAxis == ERotationGroup::RotationGroup::Y) {
 		for (int32 x = 0; x < Pieces.Num(); x++) {
 			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Y -
-				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Y) < 10) {
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Y) < CUBE_ROTATE_THRESHOLD) {
 				PiecesToRotate.Add(Pieces[x]);
 			}
 		}
@@ -312,7 +319,7 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	else if (groupAxis == ERotationGroup::RotationGroup::Z) {
 		for (int32 x = 0; x < Pieces.Num(); x++) {
 			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Z -
-				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Z) < 10) {
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Z) < CUBE_ROTATE_THRESHOLD) {
 				PiecesToRotate.Add(Pieces[x]);
 			}
 		}
@@ -353,3 +360,95 @@ ARubiksPiece* ARubiksCube::getCubePieceByID(int32 inputID) {
 	UE_LOG(LogActor, Warning, TEXT("can't find cube piece!"));
 	return NULL;
 }
+
+
+TArray <class ARubiksPiece*>  ARubiksCube::TargetPiecesToRotateGroup(FVector normal, class ARubiksPiece * piece) {
+
+	PotentialPiecesToRotateGroup.Empty();
+
+	if (piece == NULL) {
+		UE_LOG(LogActor, Warning, TEXT("input piece is NULL!"));
+		return PotentialPiecesToRotateGroup;
+	}
+
+	ERotationGroup::RotationGroup potentialRotationGroup;
+
+	if (normal.Equals(FVector(0, 0, 1))) { //Top Face
+		UE_LOG(LogActor, Warning, TEXT("Top face!"));
+		
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+	}
+	else if (normal.Equals(FVector(0, 0, -1))) { //Bottom Face
+		UE_LOG(LogActor, Warning, TEXT("Bottom face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+
+	}
+	else if (normal.Equals(FVector(1, 0, 0))) { //Back face
+		UE_LOG(LogActor, Warning, TEXT("Back face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+
+	}
+	else if (normal.Equals(FVector(-1, 0, 0))) { //Front Face
+		UE_LOG(LogActor, Warning, TEXT("Front face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+
+	}
+	else if (normal.Equals(FVector(0, -1, 0))) { //Right Face
+		UE_LOG(LogActor, Warning, TEXT("Right face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+
+	}
+	else if (normal.Equals(FVector(0, 1, 0))) { //Left Face
+		UE_LOG(LogActor, Warning, TEXT("Left face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+
+	}
+
+
+	//Add all pieces from the same group as the given piece to the PiecesToRotate array (used fabs just to prevent possible minimal erros)
+	if (potentialRotationGroup == ERotationGroup::RotationGroup::X) {
+		for (int32 x = 0; x < Pieces.Num(); x++) {
+			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).X -
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).X) < CUBE_ROTATE_THRESHOLD) {
+				PotentialPiecesToRotateGroup.Add(Pieces[x]);
+			}
+		}
+	}
+	else if (potentialRotationGroup == ERotationGroup::RotationGroup::Y) {
+		for (int32 x = 0; x < Pieces.Num(); x++) {
+			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Y -
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Y) < CUBE_ROTATE_THRESHOLD) {
+				PotentialPiecesToRotateGroup.Add(Pieces[x]);
+			}
+		}
+	}
+
+	else if (potentialRotationGroup == ERotationGroup::RotationGroup::Z) {
+		for (int32 x = 0; x < Pieces.Num(); x++) {
+			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Z -
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Z) < CUBE_ROTATE_THRESHOLD) {
+				PotentialPiecesToRotateGroup.Add(Pieces[x]);
+			}
+		}
+	}
+
+	return PotentialPiecesToRotateGroup;
+}
+
+//void ARubiksCube::RotateWholeCube() {
+//
+//	if (SelfRotator == NULL) {
+//		return;
+//	}
+//
+//	for (int32 x = 0; x < Pieces.Num(); x++) {
+//		Pieces[x]->AttachToComponent(SelfRotator, FAttachmentTransformRules::KeepWorldTransform);
+//	}
+//
+//	SelfRotator->SetRelativeRotation(FRotator(0.0, 0.0, 90.0));
+//}
