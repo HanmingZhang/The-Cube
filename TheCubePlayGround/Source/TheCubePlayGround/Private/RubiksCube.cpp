@@ -17,10 +17,6 @@ ARubiksCube::ARubiksCube()
 	//Set default cube size
 	this->CubeSize = 3;
 
-	this->HitStartPiece = nullptr;
-	this->HitStartPosition = FVector::ZeroVector;
-	this->HitStartNormal = FVector::ZeroVector;
-
 	//Creates the piece rotator
 	DummyRoot = CreateDefaultSubobject<USceneComponent>(FName("Dummy Root"));
 	SetRootComponent(DummyRoot);
@@ -29,11 +25,22 @@ ARubiksCube::ARubiksCube()
 
 	PieceRotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 
+
+	SelfRotator = CreateDefaultSubobject<USceneComponent>(FName("Self Rotator"));
+
+	SelfRotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
+
 	this->CubeExtentScale = 1.0;
 	this->totalRotationTime = 1.0;
 	passRotationTime = 0.0;
 	isRotating = false;
 	destRotation = FRotator(0, 0, 0);
+
+
+	potentialRotationGroup = ERotationGroup::RotationGroup::X;
+	potentialRotator = FRotator(0, 0, 0);
+	potentialPiece = NULL;
 }
 
 // Called when the game starts or when spawned
@@ -44,8 +51,6 @@ void ARubiksCube::BeginPlay()
 	//Build Cube Pieces
 	this->BuildCube(this->CubeSize);
 
-	//this->SetActorRotation(FRotator(30, 30, 30));
-	//this->SetActorLocation(FVector(50, 0, 0));
 }
 
 // Called every frame
@@ -56,9 +61,14 @@ void ARubiksCube::Tick(float DeltaTime)
 
 	if (isRotating) {
 		passRotationTime += DeltaTime;
-		PieceRotator->SetRelativeRotation((passRotationTime / totalRotationTime)  * destRotation);
 
-		if (passRotationTime >= totalRotationTime) {
+		float portionRotate = passRotationTime / totalRotationTime;
+
+		portionRotate = FMath::Clamp(portionRotate, 0.0f, 1.0f);
+		
+		PieceRotator->SetRelativeRotation(portionRotate * destRotation);
+
+		if (passRotationTime > totalRotationTime) {
 			isRotating = false;
 			passRotationTime = 0.0;
 			destRotation = FRotator(0, 0, 0);
@@ -76,6 +86,7 @@ void ARubiksCube::DestroyCube()
 
 	Pieces.Empty();
 	PieceRotator->SetRelativeRotation(FRotator(0, 0, 0));
+	SelfRotator->SetRelativeRotation(FRotator(0, 0, 0));
 }
 
 void ARubiksCube::BuildCube(int32 size)
@@ -87,7 +98,9 @@ void ARubiksCube::BuildCube(int32 size)
 
 	//Set PieceRotator to the center of the new cube
 	float centerOffset = (CUBE_EXTENT * this->CubeExtentScale * (this->CubeSize - 1)) / 2;
+
 	PieceRotator->SetRelativeLocation(FVector(centerOffset, centerOffset, centerOffset));
+	SelfRotator->SetRelativeLocation(FVector(centerOffset, centerOffset, centerOffset));
 
 
 	int32 cubePieceID = 1;
@@ -103,7 +116,6 @@ void ARubiksCube::BuildCube(int32 size)
 					FActorSpawnParameters params;
 					params.Owner = this;
 					ARubiksPiece * piece = gWorld->SpawnActor<ARubiksPiece>(PieceClass, FVector(CUBE_EXTENT * this->CubeExtentScale * j, CUBE_EXTENT * this->CubeExtentScale * i, CUBE_EXTENT * this->CubeExtentScale * k), FRotator(0.0f, 0.0f, 0.0f), params);
-					//piece->AttachRootComponentToActor(this, NAME_None, EAttachLocation::KeepRelativeOffset, false);
 					piece->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 					piece->Tags.Add(CUBE_PIECE_TAG);
 					piece->cubePieceID = cubePieceID++;
@@ -296,7 +308,7 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	if (groupAxis == ERotationGroup::RotationGroup::X) {
 		for (int32 x = 0; x < Pieces.Num(); x++) {
 			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).X -
-				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).X) < 10) {
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).X) < CUBE_ROTATE_THRESHOLD) {
 				PiecesToRotate.Add(Pieces[x]);
 			}
 		}
@@ -304,7 +316,7 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	else if (groupAxis == ERotationGroup::RotationGroup::Y) {
 		for (int32 x = 0; x < Pieces.Num(); x++) {
 			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Y -
-				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Y) < 10) {
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Y) < CUBE_ROTATE_THRESHOLD) {
 				PiecesToRotate.Add(Pieces[x]);
 			}
 		}
@@ -312,7 +324,7 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 	else if (groupAxis == ERotationGroup::RotationGroup::Z) {
 		for (int32 x = 0; x < Pieces.Num(); x++) {
 			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Z -
-				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Z) < 10) {
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Z) < CUBE_ROTATE_THRESHOLD) {
 				PiecesToRotate.Add(Pieces[x]);
 			}
 		}
@@ -320,12 +332,14 @@ void ARubiksCube::RotateGroup(FName tweenName, class ARubiksPiece* piece, ERotat
 
 	for (int32 x = 0; x < Pieces.Num(); x++) {
 		Pieces[x]->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+		//Pieces[x]->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 
 
 	//Set all the pieces to rotate as child of the PieceRotator
 	for (int32 x = 0; x < PiecesToRotate.Num(); x++) {
 		PiecesToRotate[x]->AttachToComponent(PieceRotator, FAttachmentTransformRules::KeepWorldTransform);
+		//PiecesToRotate[x]->AttachToComponent(PieceRotator, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 
 	UE_LOG(LogActor, Warning, TEXT("%d pieces found."), PiecesToRotate.Num());
@@ -352,4 +366,285 @@ ARubiksPiece* ARubiksCube::getCubePieceByID(int32 inputID) {
 
 	UE_LOG(LogActor, Warning, TEXT("can't find cube piece!"));
 	return NULL;
+}
+
+
+TArray <class ARubiksPiece*>  ARubiksCube::TargetPiecesToRotateGroup(FVector normal, class ARubiksPiece * piece) {
+
+	PotentialPiecesToRotateGroup.Empty();
+
+	if (piece == NULL) {
+		UE_LOG(LogActor, Warning, TEXT("input piece is NULL!"));
+		return PotentialPiecesToRotateGroup;
+	}
+
+	ERotationGroup::RotationGroup potentialRotationGroup;
+
+	if (normal.Equals(FVector(0, 0, 1))) { //Top Face
+		UE_LOG(LogActor, Warning, TEXT("Top face!"));
+		
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+	}
+	else if (normal.Equals(FVector(0, 0, -1))) { //Bottom Face
+		UE_LOG(LogActor, Warning, TEXT("Bottom face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+
+	}
+	else if (normal.Equals(FVector(1, 0, 0))) { //Back face
+		UE_LOG(LogActor, Warning, TEXT("Back face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+
+	}
+	else if (normal.Equals(FVector(-1, 0, 0))) { //Front Face
+		UE_LOG(LogActor, Warning, TEXT("Front face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+
+	}
+	else if (normal.Equals(FVector(0, -1, 0))) { //Right Face
+		UE_LOG(LogActor, Warning, TEXT("Right face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+
+	}
+	else if (normal.Equals(FVector(0, 1, 0))) { //Left Face
+		UE_LOG(LogActor, Warning, TEXT("Left face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+
+	}
+
+
+	//Add all pieces from the same group as the given piece to the PiecesToRotate array (used fabs just to prevent possible minimal erros)
+	if (potentialRotationGroup == ERotationGroup::RotationGroup::X) {
+		for (int32 x = 0; x < Pieces.Num(); x++) {
+			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).X -
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).X) < CUBE_ROTATE_THRESHOLD) {
+				PotentialPiecesToRotateGroup.Add(Pieces[x]);
+			}
+		}
+	}
+	else if (potentialRotationGroup == ERotationGroup::RotationGroup::Y) {
+		for (int32 x = 0; x < Pieces.Num(); x++) {
+			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Y -
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Y) < CUBE_ROTATE_THRESHOLD) {
+				PotentialPiecesToRotateGroup.Add(Pieces[x]);
+			}
+		}
+	}
+
+	else if (potentialRotationGroup == ERotationGroup::RotationGroup::Z) {
+		for (int32 x = 0; x < Pieces.Num(); x++) {
+			if (fabs(this->GetTransform().InverseTransformPosition(Pieces[x]->GetActorLocation()).Z -
+				this->GetTransform().InverseTransformPosition(piece->GetActorLocation()).Z) < CUBE_ROTATE_THRESHOLD) {
+				PotentialPiecesToRotateGroup.Add(Pieces[x]);
+			}
+		}
+	}
+
+	return PotentialPiecesToRotateGroup;
+}
+
+void ARubiksCube::RotateWholeCube(ERotationGroup::RotationGroup directionGroup, int clockWise)  {
+
+	if (SelfRotator == NULL) {
+		return;
+	}
+
+	//Don't rotate the whole cube while one face is rotating
+	if (this->isRotating) {
+		return;
+	}
+
+	//Remove parent from all pieces
+	for (int32 x = 0; x < Pieces.Num(); x++) {
+		Pieces[x]->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	}
+
+	//Reset rotation from PieceRotator
+	SelfRotator->SetRelativeRotation(FRotator(0, 0, 0));
+
+	for (int32 x = 0; x < Pieces.Num(); x++) {
+		Pieces[x]->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	//Attach all to self rotator
+	for (int32 x = 0; x < Pieces.Num(); x++) {
+		Pieces[x]->AttachToComponent(SelfRotator, FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	switch (directionGroup)
+	{
+		case ERotationGroup::X:
+			if (clockWise == 1) {
+				SelfRotator->SetRelativeRotation(FRotator(90.0, 0.0, 0.0));
+			}
+			else {
+				SelfRotator->SetRelativeRotation(FRotator(-90.0, 0.0, 0.0));
+			}
+			break;
+		case ERotationGroup::Y:
+			if (clockWise == 1) {
+				SelfRotator->SetRelativeRotation(FRotator(0.0, 90.0, 0.0));
+			}
+			else {
+				SelfRotator->SetRelativeRotation(FRotator(0.0, -90.0, 0.0));
+			}
+			break;
+		case ERotationGroup::Z:
+			if (clockWise == 1) {
+				SelfRotator->SetRelativeRotation(FRotator(0.0, 0.0, 90.0));
+			}
+			else{
+				SelfRotator->SetRelativeRotation(FRotator(0.0, 0.0, -90.0));
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+
+
+
+
+int32 ARubiksCube::RotateFromPieceClockwiseWithCollisionDetection(FVector normal, class ARubiksPiece * piece) {
+	if (this->isRotating) {
+		return -1;
+	}
+
+	UE_LOG(LogActor, Warning, TEXT("Rotate From Piece Clockwise!"));
+	if (normal.Equals(FVector(0, 0, 1))) { //Top Face
+		UE_LOG(LogActor, Warning, TEXT("Top face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, 90, 0);
+
+		return 1;
+	}
+	else if (normal.Equals(FVector(0, 0, -1))) { //Bottom Face
+		UE_LOG(LogActor, Warning, TEXT("Bottom face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, -90, 0);
+
+		return 2;
+	}
+	else if (normal.Equals(FVector(1, 0, 0))) { //Back face
+		UE_LOG(LogActor, Warning, TEXT("Back face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, 0, -90);
+
+		return 3;
+	}
+	else if (normal.Equals(FVector(-1, 0, 0))) { //Front Face
+		UE_LOG(LogActor, Warning, TEXT("Front face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, 0, 90);
+
+		return 4;
+	}
+	else if (normal.Equals(FVector(0, -1, 0))) { //Right Face
+		UE_LOG(LogActor, Warning, TEXT("Right face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+		potentialPiece = piece;
+		potentialRotator = FRotator(90, 0, 0);
+
+		return 5;
+	}
+	else if (normal.Equals(FVector(0, 1, 0))) { //Left Face
+		UE_LOG(LogActor, Warning, TEXT("Left face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+		potentialPiece = piece;
+		potentialRotator = FRotator(-90, 0, 0);
+
+		return 6;
+	}
+
+	return -1;
+}
+
+
+int32 ARubiksCube::RotateFromPieceCounterClockwiseWithCollisionDetection(FVector normal, class ARubiksPiece * piece) {
+	if (this->isRotating) {
+		return -1;
+	}
+
+	UE_LOG(LogActor, Warning, TEXT("Rotate From Piece Clockwise!"));
+	if (normal.Equals(FVector(0, 0, 1))) { //Top Face
+		UE_LOG(LogActor, Warning, TEXT("Top face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, -90, 0);
+
+		return 1;
+	}
+	else if (normal.Equals(FVector(0, 0, -1))) { //Bottom Face
+		UE_LOG(LogActor, Warning, TEXT("Bottom face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Z;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, 90, 0);
+
+		return 2;
+	}
+	else if (normal.Equals(FVector(1, 0, 0))) { //Back face
+		UE_LOG(LogActor, Warning, TEXT("Back face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, 0, 90);
+
+		return 3;
+	}
+	else if (normal.Equals(FVector(-1, 0, 0))) { //Front Face
+		UE_LOG(LogActor, Warning, TEXT("Front face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::X;
+		potentialPiece = piece;
+		potentialRotator = FRotator(0, 0, -90);
+
+		return 4;
+	}
+	else if (normal.Equals(FVector(0, -1, 0))) { //Right Face
+		UE_LOG(LogActor, Warning, TEXT("Right face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+		potentialPiece = piece;
+		potentialRotator = FRotator(-90, 0, 0);
+
+		return 5;
+	}
+	else if (normal.Equals(FVector(0, 1, 0))) { //Left Face
+		UE_LOG(LogActor, Warning, TEXT("Left face!"));
+
+		potentialRotationGroup = ERotationGroup::RotationGroup::Y;
+		potentialPiece = piece;
+		potentialRotator = FRotator(90, 0, 0);
+
+		return 6;
+	}
+
+	return -1;
+}
+
+
+void ARubiksCube::RotateFromPieceDoRotation() {
+	if (potentialPiece == NULL) {
+		UE_LOG(LogActor, Warning, TEXT("Potential Rotation piece is NULL"));
+		return;
+	}
+
+	RotateGroup(FName("Group Rotation"), potentialPiece, potentialRotationGroup, potentialRotator);
 }
