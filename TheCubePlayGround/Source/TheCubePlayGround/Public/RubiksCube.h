@@ -19,6 +19,8 @@ namespace ERotationGroup
 
 #define CUBE_EXTENT 94
 #define CUBE_PIECE_TAG "CubePiece"
+#define CUBE_ROTATE_THRESHOLD 15.0
+
 
 UCLASS(Blueprintable)
 class THECUBEPLAYGROUND_API ARubiksCube : public AActor
@@ -33,13 +35,16 @@ private:
 		TArray <class ARubiksPiece*> PiecesToRotate;
 
 	UPROPERTY()
-		FVector HitStartPosition;
+		TArray <class ARubiksPiece*> PotentialPiecesToRotateGroup;
 
-	UPROPERTY()
-		FVector HitStartNormal;
+	//UPROPERTY()
+	//	FVector HitStartPosition;
 
-	UPROPERTY()
-		class ARubiksPiece * HitStartPiece;
+	//UPROPERTY()
+	//	FVector HitStartNormal;
+
+	//UPROPERTY()
+	//	class ARubiksPiece * HitStartPiece;
 
 
 	float passRotationTime;
@@ -69,6 +74,11 @@ public:
 
 	UPROPERTY(Category = Rubiks, VisibleAnywhere, BlueprintReadOnly)
 		class USceneComponent * PieceRotator;
+
+
+	UPROPERTY(Category = Rubiks, VisibleAnywhere, BlueprintReadOnly)
+		class USceneComponent * SelfRotator;
+
 
 	// Sets default values for this actor's properties
 	ARubiksCube();
@@ -102,5 +112,12 @@ public:
 	UFUNCTION(Category = Rubiks, BlueprintCallable)
 		int32 RotateFromPieceCounterClockwise(FVector normal, class ARubiksPiece * piece);
 
+	//Return target potential cube's pieces group
+	UFUNCTION(Category = Rubiks, BlueprintCallable)
+		TArray <class ARubiksPiece*> TargetPiecesToRotateGroup(FVector normal, class ARubiksPiece * piece);
+
+	//Return target potential cube's pieces group
+	//UFUNCTION(Category = Rubiks, BlueprintCallable)
+	//	void RotateWholeCube();
 
 };
